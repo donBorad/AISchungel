@@ -1,0 +1,192 @@
+{
+  "name": "AI Dual Engine Website Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "ai-webhook",
+        "method": "POST",
+        "responseMode": "onReceived",
+        "responseData": {
+          "response": "Received"
+        }
+      },
+      "id": "1",
+      "name": "Webhook Entry",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\n        const input = $json.content || '';\n        if (input.includes('[PAGE]')) {\n            return [{ json: { mode: 'content', content: input } }];\n        } else if (input.includes('[UPDATE]')) {\n            return [{ json: { mode: 'control', content: input } }];\n        } else {\n            throw new Error(\"No valid command tag found.\");\n        }\n        "
+      },
+      "id": "2",
+      "name": "Parse Command Type",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:11434/api/generate",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "body": {
+          "mode": "json",
+          "json": {
+            "model": "codestral",
+            "prompt": "=Convert the following into a full HTML tutorial page with a title, body, optional images/videos and section classification.\\n{{$json[\"content\"]}}"
+          }
+        }
+      },
+      "id": "3",
+      "name": "Codestral - Generate Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:11434/api/generate",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "body": {
+          "mode": "json",
+          "json": {
+            "model": "mistral",
+            "prompt": "=Apply these site updates to style, nav, or content files:\\n{{$json[\"content\"]}}"
+          }
+        }
+      },
+      "id": "4",
+      "name": "Mistral - Control Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { message: 'Page generation successful.' } }];"
+      },
+      "id": "5",
+      "name": "Page Save Dummy",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        800,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { message: 'Site control update complete.' } }];"
+      },
+      "id": "6",
+      "name": "Control Save Dummy",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        800,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "=public/pages/{{ $json.section }}/{{ $json.slug }}.html",
+        "fileData": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Save HTML File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "data/site_config.json",
+        "fileData": "={{ JSON.stringify($json.updatedConfig, null, 2) }}",
+        "options": {}
+      },
+      "id": "8",
+      "name": "Save site_config.json",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Entry": {
+      "main": [
+        [
+          "Parse Command Type",
+          "main"
+        ]
+      ]
+    },
+    "Parse Command Type": {
+      "main": [
+        [
+          "Codestral - Generate Page",
+          "main"
+        ],
+        [
+          "Mistral - Control Update",
+          "main"
+        ]
+      ]
+    },
+    "Codestral - Generate Page": {
+      "main": [
+        [
+          "Page Save Dummy",
+          "main"
+        ]
+      ]
+    },
+    "Mistral - Control Update": {
+      "main": [
+        [
+          "Control Save Dummy",
+          "main"
+        ]
+      ]
+    },
+    "Page Save Dummy": {
+      "main": [
+        [
+          "Save HTML File",
+          "main"
+        ]
+      ]
+    },
+    "Control Save Dummy": {
+      "main": [
+        [
+          "Save site_config.json",
+          "main"
+        ]
+      ]
+    }
+  }
+}
