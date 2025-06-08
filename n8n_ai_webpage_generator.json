@@ -1,0 +1,163 @@
+{
+  "name": "AI Webpage Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "webhook-test",
+        "method": "POST",
+        "responseMode": "onReceived",
+        "responseData": {
+          "response": "Received"
+        }
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:11434/api/generate",
+        "method": "POST",
+        "authentication": "none",
+        "jsonParameters": true,
+        "options": {},
+        "body": {
+          "mode": "json",
+          "json": {
+            "model": "codestral",
+            "prompt": "=Classify the following content as one of IT Ops, IT Coding, or Nature, and then generate an HTML page with title, body, and a fact box if relevant:\n\n{{$json[\"title\"] || 'Untitled'}}\n\n{{$json[\"content\"]}}"
+          }
+        }
+      },
+      "id": "2",
+      "name": "Codestral AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "=notes/{{ $json.section }}/{{ $json.slug }}.html",
+        "fileData": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "3",
+      "name": "Save HTML File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\n        const content = $json.body.completion || '';\n        const sectionMatch = content.match(/SECTION:\\s*(IT Ops|IT Coding|Nature)/i);\n        const titleMatch = content.match(/<h1>(.*?)<\\/h1>/i);\n        const section = sectionMatch ? sectionMatch[1].toLowerCase().replace(' ', '_') : 'it_ops';\n        const title = titleMatch ? titleMatch[1] : 'Untitled';\n        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');\n        return [{\n          html: content,\n          section,\n          title,\n          slug,\n          date: new Date().toISOString().split('T')[0]\n        }];\n        "
+      },
+      "id": "4",
+      "name": "Extract Metadata",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        500,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "index.json",
+        "dataPropertyName": "data"
+      },
+      "id": "5",
+      "name": "Read Index",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        750,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\n        const indexData = JSON.parse(Buffer.from(items[0].binary.data.data, 'base64').toString());\n        indexData.push({\n          title: items[1].json.title,\n          section: items[1].json.section,\n          slug: items[1].json.slug,\n          date: items[1].json.date\n        });\n        return [{ json: { updatedIndex: indexData } }];\n        "
+      },
+      "id": "6",
+      "name": "Update Index JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        950,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "index.json",
+        "fileData": "={{ JSON.stringify($json.updatedIndex, null, 2) }}",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Save index.json",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          "Codestral AI",
+          "main"
+        ]
+      ]
+    },
+    "Codestral AI": {
+      "main": [
+        [
+          "Extract Metadata",
+          "main"
+        ]
+      ]
+    },
+    "Extract Metadata": {
+      "main": [
+        [
+          "Save HTML File",
+          "main"
+        ],
+        [
+          "Read Index",
+          "main"
+        ]
+      ]
+    },
+    "Read Index": {
+      "main": [
+        [
+          "Update Index JSON",
+          "main"
+        ]
+      ]
+    },
+    "Update Index JSON": {
+      "main": [
+        [
+          "Save index.json",
+          "main"
+        ]
+      ]
+    }
+  }
+}
