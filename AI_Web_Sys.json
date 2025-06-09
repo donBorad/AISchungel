@@ -1,0 +1,196 @@
+{
+  "name": "AI-Web-Sys",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        60,
+        -160
+      ],
+      "id": "95bf7590-9984-46c3-8138-7d1c53e156a6"
+    },
+    {
+      "parameters": {
+        "filePath": "C:\\AIWeb\\control.txt"
+      },
+      "name": "Read Control File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        280,
+        -160
+      ],
+      "id": "3ebd393c-520f-4c41-8ebd-0f67c4c64eaa"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $binary.data.toString() }}",
+              "operation": "notEqual"
+            }
+          ]
+        }
+      },
+      "name": "Check If Not Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -160
+      ],
+      "id": "482ff658-6205-4daa-9a18-43f2829be9b7"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "allowUnauthorizedCerts": true,
+        "responseFormat": "string",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Call Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -300
+      ],
+      "id": "907acc00-5a07-4f98-9bbd-729650f57b8b"
+    },
+    {
+      "parameters": {
+        "fileName": "C:\\AIWeb\\generated.html",
+        "dataPropertyName": "body",
+        "options": {}
+      },
+      "name": "Write Generated HTML",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        -160
+      ],
+      "id": "146b1fc6-139b-4630-a95b-248555bd61de"
+    },
+    {
+      "parameters": {
+        "fileName": "C:\\AIWebsite\\control.txt",
+        "options": {}
+      },
+      "name": "Reset Control File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        -160
+      ],
+      "id": "1be6bc7f-d924-4097-a453-fb0d9a7616a9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the streamed JSON lines (as one string)\nconst raw = items[0].json.data;\n\n// Each line is a JSON string; split and parse\nconst lines = raw.trim().split('\\n');\nconst parts = lines.map(line => {\n  try {\n    const obj = JSON.parse(line);\n    return obj.response || '';\n  } catch (e) {\n    return '';\n  }\n});\n\n// Join all partial responses\nconst html = parts.join('');\nconst buffer = Buffer.from(html, 'utf-8');\n\n// Return as binary file for HTML writer\nreturn [\n  {\n    binary: {\n      body: {\n        data: buffer.toString('base64'),\n        mimeType: 'text/html',\n        fileName: 'generated.html'\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        -300
+      ],
+      "id": "cc8eef7a-a469-47ee-aea4-1b373d1b508d",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Control File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Control File": {
+      "main": [
+        [
+          {
+            "node": "Check If Not Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Not Empty": {
+      "main": [
+        [
+          {
+            "node": "Call Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ollama": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Generated HTML": {
+      "main": [
+        [
+          {
+            "node": "Reset Control File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Write Generated HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "10abe42c-1276-42f0-a6ec-e58433b36284",
+  "meta": {
+    "instanceId": "d4779ad9f207598b274cfb5f1533328d3bc8a27a1a6c11b7f6ddb8143648d552"
+  },
+  "id": "LQB6BczU9OosuXrh",
+  "tags": []
+}
