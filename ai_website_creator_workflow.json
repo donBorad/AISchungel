@@ -1,0 +1,127 @@
+{
+  "name": "AI Website Creator",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "C:\\AIWebsite\\control.txt",
+        "binaryPropertyName": "data"
+      },
+      "name": "Read Control File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $binary.data.toString() }}",
+              "operation": "notEqual",
+              "value2": ""
+            }
+          ]
+        }
+      },
+      "name": "Check If Not Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:11434/api/generate",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"model\": \"codestral\",\n  \"prompt\": \"You are an expert web developer. Based on this instruction, modify or create a new HTML/CSS/JS page:\\n{{$binary.data.toString()}}\\nOutput only the full HTML or code needed.\"\n}"
+      },
+      "name": "Call Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "C:\\AIWebsite\\generated.html",
+        "dataPropertyName": "body"
+      },
+      "name": "Write Generated HTML",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "C:\\AIWebsite\\control.txt",
+        "data": ""
+      },
+      "name": "Reset Control File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Read Control File": {
+      "main": [
+        [
+          {
+            "node": "Check If Not Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Not Empty": {
+      "main": [
+        [
+          {
+            "node": "Call Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ollama": {
+      "main": [
+        [
+          {
+            "node": "Write Generated HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Generated HTML": {
+      "main": [
+        [
+          {
+            "node": "Reset Control File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
