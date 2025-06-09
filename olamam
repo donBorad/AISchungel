@@ -1,0 +1,30 @@
+// Get the streamed JSON lines (as one string)
+const raw = items[0].json.data;
+
+// Each line is a JSON string; split and parse
+const lines = raw.trim().split('\n');
+const parts = lines.map(line => {
+  try {
+    const obj = JSON.parse(line);
+    return obj.response || '';
+  } catch (e) {
+    return '';
+  }
+});
+
+// Join all partial responses
+const html = parts.join('');
+const buffer = Buffer.from(html, 'utf-8');
+
+// Return as binary file for HTML writer
+return [
+  {
+    binary: {
+      body: {
+        data: buffer.toString('base64'),
+        mimeType: 'text/html',
+        fileName: 'generated.html'
+      }
+    }
+  }
+];
