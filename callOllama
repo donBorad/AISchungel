@@ -1,0 +1,27 @@
+const raw = items[0].json.data;
+const lines = raw.trim().split("\n");
+
+// Parse and extract the 'response' field from each JSON line
+const responses = lines.map(line => {
+  try {
+    const json = JSON.parse(line);
+    return json.response || "";
+  } catch (e) {
+    return "";
+  }
+});
+
+const html = responses.join("");
+const buffer = Buffer.from(html);
+
+return [
+  {
+    binary: {
+      body: {
+        data: buffer.toString('base64'),
+        mimeType: 'text/html',
+        fileName: 'generated.html'
+      }
+    }
+  }
+];
