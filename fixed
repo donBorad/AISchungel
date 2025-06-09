@@ -1,5 +1,5 @@
 {
-  "name": "Local AI Website Creator (Corrected)",
+  "name": "Local AI Website Creator (Fixed)",
   "nodes": [
     {
       "parameters": {
@@ -20,9 +20,7 @@
     {
       "parameters": {
         "filePath": "C:\\AIWebsite\\control.txt",
-        "options": {
-          "encoding": "utf8"
-        }
+        "options": {}
       },
       "name": "Read Control File",
       "type": "n8n-nodes-base.readBinaryFile",
@@ -32,27 +30,18 @@
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
+          "string": [
             {
-              "leftValue": "={{ $binary.data }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEquals"
-              }
+              "value1": "={{ Buffer.from($binary.data.data, 'base64').toString('utf8').trim() }}",
+              "operation": "notEqual",
+              "value2": ""
             }
-          ],
-          "combinator": "and"
+          ]
         }
       },
       "name": "Check If Not Empty",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "typeVersion": 1,
       "position": [600, 300]
     },
     {
@@ -61,14 +50,9 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"mistral\",\n  \"prompt\": \"{{ $binary.data }}\",\n  \"stream\": false\n}",
+        "jsonBody": "={\n  \"model\": \"mistral\",\n  \"prompt\": \"{{ Buffer.from($binary.data.data, 'base64').toString('utf8') }}\",\n  \"stream\": false\n}",
         "options": {
-          "timeout": 60000,
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
+          "timeout": 60000
         }
       },
       "name": "Call Ollama",
@@ -78,42 +62,39 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
+        "keepOnlySet": true,
+        "values": {
+          "string": [],
+          "binary": [
             {
-              "id": "html_content",
-              "name": "html_content",
-              "value": "={{ $json.response }}",
-              "type": "string"
+              "name": "body",
+              "data": "={{ Buffer.from($json.response || '', 'utf8').toString('base64') }}"
             }
           ]
-        },
-        "options": {}
+        }
       },
-      "name": "Extract Response",
+      "name": "Set to Binary",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 3,
+      "typeVersion": 1,
       "position": [1000, 300]
     },
     {
       "parameters": {
-        "operation": "write",
         "fileName": "C:\\AIWebsite\\generated.html",
-        "dataPropertyName": "html_content"
+        "dataPropertyName": "body"
       },
       "name": "Write Generated HTML",
-      "type": "n8n-nodes-base.writeFile",
+      "type": "n8n-nodes-base.writeBinaryFile",
       "typeVersion": 1,
       "position": [1200, 300]
     },
     {
       "parameters": {
-        "operation": "write",
         "fileName": "C:\\AIWebsite\\control.txt",
-        "fileContent": ""
+        "data": ""
       },
       "name": "Reset Control File",
-      "type": "n8n-nodes-base.writeFile",
+      "type": "n8n-nodes-base.writeBinaryFile",
       "typeVersion": 1,
       "position": [1400, 300]
     }
@@ -157,14 +138,14 @@
       "main": [
         [
           {
-            "node": "Extract Response",
+            "node": "Set to Binary",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract Response": {
+    "Set to Binary": {
       "main": [
         [
           {
