@@ -19,8 +19,7 @@
     },
     {
       "parameters": {
-        "filePath": "C:\\AIWebsite\\control.txt",
-        "options": {}
+        "filePath": "C:\\AIWebsite\\control.txt"
       },
       "name": "Read Control File",
       "type": "n8n-nodes-base.readBinaryFile",
